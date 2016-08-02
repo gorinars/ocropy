@@ -5,10 +5,11 @@ import random as pyrandom
 import glob,sys,os,re,codecs,traceback
 from pylab import *
 from PIL import Image
-import ImageFont,ImageDraw
+from PIL import ImageFont,ImageDraw
 from scipy.ndimage import filters,measurements,interpolation
 from scipy.misc import imsave
 import ocrolib
+import random
 
 import argparse
 parser = argparse.ArgumentParser(description = "Generate text line training data")
@@ -30,6 +31,8 @@ parser.add_argument('--numdir',action="store_true")
 parser.add_argument('-C','--cleanup',default='[_~#]')
 parser.add_argument('-D','--debug_show',default=None,
     help="select a class for stepping through")
+parser.add_argument('--transparent',action="store_true",default=False)
+parser.add_argument('--shuffle_color',action="store_true",default=False)
 args = parser.parse_args()
 
 if "-" in args.sizes:
@@ -222,7 +225,15 @@ for pageno,font in enumerate(fonts):
             gray()
             clf(); imshow(image); ginput(1,0.1)
         fname = pagedir+"/01%04d"%lineno
-        imsave(fname+".bin.png",image)
+        if args.transparent:
+            image_la = np.zeros((image.shape[0], image.shape[1], 4))
+            if args.shuffle_color:
+               color = random.random()
+               image_la.fill(color)
+            image_la[:,:,3] = 1 - image
+            imsave(fname+".bin.png",image_la)
+        else:
+            imsave(fname+".bin.png",image)
         gt = ocrolib.normalize_text(line)
         with codecs.open(fname+".gt.txt","w",'utf-8') as stream:
             stream.write(gt+"\n")
