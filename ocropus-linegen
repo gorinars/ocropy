@@ -7,7 +7,7 @@ from pylab import *
 from PIL import Image
 from PIL import ImageFont,ImageDraw
 from scipy.ndimage import filters,measurements,interpolation
-from scipy.misc import imsave
+from scipy.misc import imsave,imread
 import ocrolib
 import random
 
@@ -31,8 +31,12 @@ parser.add_argument('--numdir',action="store_true")
 parser.add_argument('-C','--cleanup',default='[_~#]')
 parser.add_argument('-D','--debug_show',default=None,
     help="select a class for stepping through")
-parser.add_argument('--transparent',action="store_true",default=False)
-parser.add_argument('--shuffle_color',action="store_true",default=False)
+parser.add_argument('--transparent',action="store_true",default=False,
+    help="generate text on transparent background")
+parser.add_argument('--shuffle_color',action="store_true",default=False,
+    help="randomly shuffle text color")
+parser.add_argument('--background_images',default=None,
+    help="directory with background images")
 args = parser.parse_args()
 
 if "-" in args.sizes:
@@ -41,6 +45,11 @@ if "-" in args.sizes:
 else:
     sizes = [int(x) for x in args.sizes.split(",")]
 
+bkg = []
+if args.background_images:
+    for file in os.listdir(args.background_images):
+        if file.endswith(".jpg"):
+            bkg.append(imread(args.background_images + '/' + file,mode='RGB'))
 
 if args.degradations=="lo":
     # sigma +/-   threshold +/-
@@ -225,15 +234,32 @@ for pageno,font in enumerate(fonts):
             gray()
             clf(); imshow(image); ginput(1,0.1)
         fname = pagedir+"/01%04d"%lineno
-        if args.transparent:
+        if args.transparent or args.background_images:
             image_la = np.zeros((image.shape[0], image.shape[1], 4))
             if args.shuffle_color:
                color = random.random()
                image_la.fill(color)
             image_la[:,:,3] = 1 - image
-            imsave(fname+".bin.png",image_la)
-        else:
-            imsave(fname+".bin.png",image)
+            image = image_la
+        if len(bkg) > 0: 
+            w = image.shape[1]
+            h = image.shape[0]
+            sp = 5
+            bi = Image.fromarray(bi_arr,'RGB')
+            bi_arr = bkg[random.randint(0,len(bkg)-1)][0:h+2*sp, 0:w+2*sp, :]
+            avg_col = np.mean(np.mean(bi_arr,axis=0),axis=0)
+            front_col = 255 - avg_col
+            image[:,:,0:3] = front_col
+            bi = Image.fromarray(bi_arr,'RGB')
+            fi = np.uint8(image*255)
+            fi_top = Image.fromarray(fi[:,:,0:3], 'RGB')
+            fi_mask = Image.fromarray(fi[:,:,3], 'L')
+            newimg = Image.new('RGBA', size=(w+2*sp, h+2*sp), color=(0, 0, 0, 0))
+            newimg.paste(bi, (0,0))
+            newimg.paste(fi_top, (sp,sp),fi_mask)
+            image=asarray(newimg,'f')
+            
+        imsave(fname+".bin.png",image)
         gt = ocrolib.normalize_text(line)
         with codecs.open(fname+".gt.txt","w",'utf-8') as stream:
             stream.write(gt+"\n")
