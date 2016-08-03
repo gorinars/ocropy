@@ -245,8 +245,11 @@ for pageno,font in enumerate(fonts):
             w = image.shape[1]
             h = image.shape[0]
             sp = 5
+            bi_img = bkg[random.randint(0,len(bkg)-1)]
+            w_rnd = random.randint(0, bi_img.shape[1] - 2*sp - 1)
+            h_rnd = random.randint(0, bi_img.shape[0] - 2*sp - 1)
+            bi_arr = bi_img[h_rnd:h_rnd+h+2*sp, w_rnd:w_rnd+w+2*sp, :] 
             bi = Image.fromarray(bi_arr,'RGB')
-            bi_arr = bkg[random.randint(0,len(bkg)-1)][0:h+2*sp, 0:w+2*sp, :]
             avg_col = np.mean(np.mean(bi_arr,axis=0),axis=0)
             front_col = 255 - avg_col
             image[:,:,0:3] = front_col
