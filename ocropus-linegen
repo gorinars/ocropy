@@ -250,18 +250,13 @@ for pageno,font in enumerate(fonts):
             h_rnd = random.randint(0,bi_img.shape[0]-h-2*sp-1)
             bi_arr = bi_img[h_rnd:h_rnd+h+2*sp,w_rnd:w_rnd+w+2*sp,:] 
             bi = Image.fromarray(bi_arr,'RGB')
-            avg_col = np.mean(np.mean(bi_arr,axis=0),axis=0)
-            for i in range(3):
-               if avg_col[i] > 100 and avg_col[i] < 128:
-                   avg_col[i] -= 50
-               elif avg_col[i] >= 128 and avg_col[i] < 150:
-                   avg_col[i] += 50
+            avg_col = np.clip(np.mean(np.mean(bi_arr,axis=0),axis=0),0,255)
             front_col = 255 - avg_col
             image[:,:,0:3] = front_col
             bi = Image.fromarray(bi_arr,'RGB')
-            fi = np.uint8(image*255)
+            fi = np.uint8(image)
             fi_top = Image.fromarray(fi[:,:,0:3],'RGB')
-            fi_mask = Image.fromarray(fi[:,:,3],'L')
+            fi_mask = Image.fromarray(fi[:,:,3]*255,'L')
             newimg = Image.new('RGBA',size=(w+2*sp,h+2*sp),color=(0,0,0,0))
             newimg.paste(bi,(0,0))
             newimg.paste(fi_top,(sp,sp),fi_mask)
