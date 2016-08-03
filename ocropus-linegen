@@ -36,7 +36,7 @@ parser.add_argument('--transparent',action="store_true",default=False,
 parser.add_argument('--shuffle_color',action="store_true",default=False,
     help="randomly shuffle text color")
 parser.add_argument('--background_images',default=None,
-    help="directory with background images")
+    help="add background images from this directory")
 args = parser.parse_args()
 
 if "-" in args.sizes:
@@ -49,7 +49,7 @@ bkg = []
 if args.background_images:
     for file in os.listdir(args.background_images):
         if file.endswith(".jpg"):
-            bkg.append(imread(args.background_images + '/' + file,mode='RGB'))
+            bkg.append(imread(args.background_images+'/'+file,mode='RGB'))
 
 if args.degradations=="lo":
     # sigma +/-   threshold +/-
@@ -235,33 +235,32 @@ for pageno,font in enumerate(fonts):
             clf(); imshow(image); ginput(1,0.1)
         fname = pagedir+"/01%04d"%lineno
         if args.transparent or args.background_images:
-            image_la = np.zeros((image.shape[0], image.shape[1], 4))
+            image_la = np.zeros((image.shape[0],image.shape[1],4))
             if args.shuffle_color:
                color = random.random()
                image_la.fill(color)
-            image_la[:,:,3] = 1 - image
+            image_la[:,:,3] = 1-image
             image = image_la
         if len(bkg) > 0: 
             w = image.shape[1]
             h = image.shape[0]
             sp = 5
             bi_img = bkg[random.randint(0,len(bkg)-1)]
-            w_rnd = random.randint(0, bi_img.shape[1] - 2*sp - 1)
-            h_rnd = random.randint(0, bi_img.shape[0] - 2*sp - 1)
-            bi_arr = bi_img[h_rnd:h_rnd+h+2*sp, w_rnd:w_rnd+w+2*sp, :] 
+            w_rnd = random.randint(0,bi_img.shape[1]-2*sp-1)
+            h_rnd = random.randint(0,bi_img.shape[0]-2*sp-1)
+            bi_arr = bi_img[h_rnd:h_rnd+h+2*sp,w_rnd:w_rnd+w+2*sp,:] 
             bi = Image.fromarray(bi_arr,'RGB')
             avg_col = np.mean(np.mean(bi_arr,axis=0),axis=0)
-            front_col = 255 - avg_col
+            front_col = 255-avg_col
             image[:,:,0:3] = front_col
             bi = Image.fromarray(bi_arr,'RGB')
             fi = np.uint8(image*255)
-            fi_top = Image.fromarray(fi[:,:,0:3], 'RGB')
-            fi_mask = Image.fromarray(fi[:,:,3], 'L')
-            newimg = Image.new('RGBA', size=(w+2*sp, h+2*sp), color=(0, 0, 0, 0))
-            newimg.paste(bi, (0,0))
-            newimg.paste(fi_top, (sp,sp),fi_mask)
+            fi_top = Image.fromarray(fi[:,:,0:3],'RGB')
+            fi_mask = Image.fromarray(fi[:,:,3],'L')
+            newimg = Image.new('RGBA',size=(w+2*sp,h+2*sp),color=(0,0,0,0))
+            newimg.paste(bi,(0,0))
+            newimg.paste(fi_top,(sp,sp),fi_mask)
             image=asarray(newimg,'f')
-            
         imsave(fname+".bin.png",image)
         gt = ocrolib.normalize_text(line)
         with codecs.open(fname+".gt.txt","w",'utf-8') as stream:
